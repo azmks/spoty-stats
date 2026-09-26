@@ -2,7 +2,7 @@
  * Spotify Webflow Integration JavaScript (Versión 100% Infallible y Confiable)
  */
 
-const DEFAULT_CLIENT_ID = 'TU_SPOTIFY_CLIENT_ID';
+const DEFAULT_CLIENT_ID = '9783bc1d37f14c03990d5f9091e68b2f';
 const SCOPE = 'user-top-read user-read-private';
 
 // Storage Seguro
