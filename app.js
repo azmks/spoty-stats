@@ -295,22 +295,6 @@ async function fetchSpotifyStats(token, timeRange = 'short_term') {
   };
 }
 
-// Datos Demo
-function getDemoData() {
-  return {
-    user: { display_name: 'Usuario Demo (Vista Previa)', images: [{ url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' }] },
-    artists: [
-      { id: '1', name: 'The Weeknd', genres: ['pop', 'r&b'], images: [{ url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: '2', name: 'Bad Bunny', genres: ['reggaeton', 'latin pop'], images: [{ url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } }
-    ],
-    tracks: [
-      { id: 't1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: 'https://open.spotify.com' } }
-    ],
-    albums: [
-      { id: 'a1', name: 'After Hours', artist: 'The Weeknd', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80', url: 'https://open.spotify.com' }
-    ]
-  };
-}
 
 function getSafeImgUrl(imagesArray, fallbackText = 'Música') {
   if (Array.isArray(imagesArray) && imagesArray.length > 0 && imagesArray[0] && imagesArray[0].url) {
@@ -412,18 +396,11 @@ function renderStats(data) {
 document.addEventListener('click', function (e) {
   // Buscar cualquier botón o enlace que contenga texto o ID/clase de login
   const loginBtn = e.target.closest('#login-btn, .login-btn, [data-spotify-login]');
-  const isGenericSpotifyBtn = e.target.closest('.spotify-btn') && !e.target.closest('#demo-btn') && !e.target.closest('#open-code-modal');
+  const isGenericSpotifyBtn = e.target.closest('.spotify-btn') && !e.target.closest('#open-code-modal');
 
   if (loginBtn || isGenericSpotifyBtn) {
     e.preventDefault();
     loginToSpotify();
-    return;
-  }
-
-  const demoBtn = e.target.closest('#demo-btn, .demo-btn');
-  if (demoBtn) {
-    e.preventDefault();
-    renderStats(getDemoData());
     return;
   }
 });
@@ -449,10 +426,8 @@ async function initApp() {
       const statsData = await fetchSpotifyStats(token);
       if (statsData) renderStats(statsData);
     } catch (err) {
-      renderStats(getDemoData());
+      console.error("Error al cargar las estadísticas de Spotify:", err);
     }
-  } else {
-    renderStats(getDemoData());
   }
 }
 
