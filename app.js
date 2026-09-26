@@ -419,7 +419,11 @@ document.addEventListener('click', function (e) {
 
   if (loginBtn || isGenericSpotifyBtn) {
     e.preventDefault();
-    loginToSpotify();
+    if (OWNER_STATS) {
+      renderStats(OWNER_STATS);
+    } else {
+      loginToSpotify();
+    }
     return;
   }
 });
