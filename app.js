@@ -251,7 +251,7 @@ function getValidToken() {
   return token;
 }
 
-async function fetchSpotifyStats(token, timeRange = 'short_term') {
+async function fetchSpotifyStats(token, timeRange = 'medium_term') {
   const headers = { Authorization: `Bearer ${token}` };
 
   let userProfile = null;
