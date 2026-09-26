@@ -396,7 +396,7 @@ function renderStats(data) {
 document.addEventListener('click', function (e) {
   // Buscar cualquier botón o enlace que contenga texto o ID/clase de login
   const loginBtn = e.target.closest('#login-btn, .login-btn, [data-spotify-login]');
-  const isGenericSpotifyBtn = e.target.closest('.spotify-btn') && !e.target.closest('#open-code-modal');
+  const isGenericSpotifyBtn = e.target.closest('.spotify-btn');
 
   if (loginBtn || isGenericSpotifyBtn) {
     e.preventDefault();
