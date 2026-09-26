@@ -5,6 +5,11 @@
 const DEFAULT_CLIENT_ID = '9783bc1d37f14c03990d5f9091e68b2f';
 const SCOPE = 'user-top-read user-read-private';
 
+// ====== TUS DATOS FIJOS ======
+// Cuando descargues tus datos (presionando Ctrl + Shift + E tras iniciar sesión), pégalos aquí reemplazando el "null".
+const OWNER_STATS = null;
+// =============================
+
 // Storage Seguro
 const safeStorage = {
   memory: {},
@@ -424,8 +429,11 @@ async function initApp() {
   const code = urlParams.get('code');
   const error = urlParams.get('error');
 
+  // Si hay error en la redirección (ej. canceló) y tenemos los datos fijos, los mostramos silenciando el error.
   if (error) {
-    alert("Acceso denegado: " + error);
+    if (OWNER_STATS) {
+      renderStats(OWNER_STATS);
+    }
     return;
   }
 
@@ -444,19 +452,51 @@ async function initApp() {
   if (token) {
     try {
       const statsData = await fetchSpotifyStats(token);
-      if (statsData) renderStats(statsData);
+      window.lastFetchedStats = statsData; // Guardar para exportar
+      
+      // Si el dueño configuró sus datos fijos, SIEMPRE forzamos a mostrar sus datos, incluso si el que inició sesión es otra persona.
+      if (OWNER_STATS) {
+        renderStats(OWNER_STATS);
+      } else {
+        if (statsData) renderStats(statsData);
+      }
     } catch (err) {
       console.error("Error al cargar las estadísticas de Spotify:", err);
-      let statsContainer = document.getElementById('stats-container');
-      if (statsContainer) {
-        statsContainer.style.display = 'block';
-        statsContainer.innerHTML = `<div style="background: #e22134; color: white; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center;"><h3>⚠️ Ups, un problema</h3><p>${err.message}</p><p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">(Nota: Si dice "User not registered", el dueño de la app debe agregar tu email en el Dashboard de Spotify).</p></div>`;
+      // Si da error (ej. User not registered), mostramos silenciosamente los datos fijos (si existen).
+      if (OWNER_STATS) {
+        renderStats(OWNER_STATS);
       } else {
-        alert("Error de Spotify: " + err.message);
+        let statsContainer = document.getElementById('stats-container');
+        if (statsContainer) {
+          statsContainer.style.display = 'block';
+          statsContainer.innerHTML = `<div style="background: #e22134; color: white; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center;"><h3>⚠️ Ups, un problema</h3><p>${err.message}</p><p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">(Nota: Si dice "User not registered", el dueño de la app debe agregar tu email en el Dashboard de Spotify).</p></div>`;
+        } else {
+          alert("Error de Spotify: " + err.message);
+        }
       }
     }
   }
 }
+
+// Función oculta para que el dueño exporte sus datos (Ctrl + Shift + E)
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'e' || e.key === 'E') {
+    if (e.ctrlKey && e.shiftKey) {
+      if (window.lastFetchedStats) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.lastFetchedStats, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "mis_datos_spotify.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        alert("¡Tus datos han sido descargados!\n\nAbre el archivo mis_datos_spotify.json, copia todo el contenido y reemplázalo donde dice 'const OWNER_STATS = null;' en la parte superior de app.js");
+      } else {
+        alert("Primero debes iniciar sesión exitosamente para descargar tus datos.");
+      }
+    }
+  }
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
