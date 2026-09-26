@@ -189,7 +189,8 @@ async function executeSpotifyRedirect(clientId) {
     scope: SCOPE,
     redirect_uri: redirectUri,
     code_challenge_method: 'S256',
-    code_challenge: challenge
+    code_challenge: challenge,
+    show_dialog: 'true'
   });
 
   const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
