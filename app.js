@@ -267,9 +267,17 @@ async function fetchSpotifyStats(token, timeRange = 'medium_term') {
     window.location.reload();
     return;
   }
+  if (!artistsRes.ok) {
+    const errObj = await artistsRes.json().catch(() => ({}));
+    throw new Error(errObj.error?.message || "Error al conectar con Spotify");
+  }
   const artistsData = await artistsRes.json();
 
   const tracksRes = await fetch(`https://api.spotify.com/v1/me/top/tracks?limit=20&time_range=${timeRange}`, { headers });
+  if (!tracksRes.ok) {
+    const errObj = await tracksRes.json().catch(() => ({}));
+    throw new Error(errObj.error?.message || "Error al obtener canciones");
+  }
   const tracksData = await tracksRes.json();
 
   const albumsMap = new Map();
@@ -342,6 +350,11 @@ function ensureDOMStructure() {
 function renderStats(data) {
   ensureDOMStructure();
 
+  if ((!data.artists || data.artists.length === 0) && (!data.tracks || data.tracks.length === 0)) {
+    document.getElementById('stats-container').innerHTML = `<div style="background: #282828; color: white; padding: 30px; border-radius: 8px; text-align: center; margin-top: 20px;"><h2>🎧 No hay suficientes datos</h2><p>Spotify indica que no tienes suficientes reproducciones recientes para generar tu Top 10.</p></div>`;
+    return;
+  }
+
   const artistsEl = document.getElementById('top-artists');
   if (artistsEl && data.artists) {
     artistsEl.innerHTML = data.artists.map((artist, idx) => {
@@ -409,6 +422,12 @@ document.addEventListener('click', function (e) {
 async function initApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
+  const error = urlParams.get('error');
+
+  if (error) {
+    alert("Acceso denegado: " + error);
+    return;
+  }
 
   const storedId = safeStorage.getItem('spotify_client_id');
   const inputEl = document.getElementById('client-id-input');
@@ -428,6 +447,13 @@ async function initApp() {
       if (statsData) renderStats(statsData);
     } catch (err) {
       console.error("Error al cargar las estadísticas de Spotify:", err);
+      let statsContainer = document.getElementById('stats-container');
+      if (statsContainer) {
+        statsContainer.style.display = 'block';
+        statsContainer.innerHTML = `<div style="background: #e22134; color: white; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center;"><h3>⚠️ Ups, un problema</h3><p>${err.message}</p><p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">(Nota: Si dice "User not registered", el dueño de la app debe agregar tu email en el Dashboard de Spotify).</p></div>`;
+      } else {
+        alert("Error de Spotify: " + err.message);
+      }
     }
   }
 }
