@@ -1,5 +1,5 @@
 /**
- * Spotify Webflow Integration JavaScript (Ultra Robusto + Auto-Creación de DOM)
+ * Spotify Webflow Integration JavaScript (Solución Definitiva & Super Confiable)
  */
 
 const DEFAULT_CLIENT_ID = 'TU_SPOTIFY_CLIENT_ID';
@@ -106,43 +106,116 @@ function getRedirectUri() {
   return window.location.origin + window.location.pathname;
 }
 
-// Iniciar sesión en Spotify
+// Modal en pantalla si no se ha ingresado Client ID (sin depender de alert())
+function showClientIdPromptModal(onSaveCallback) {
+  let existingModal = document.getElementById('spotify-client-modal');
+  if (existingModal) existingModal.remove();
+
+  const currentRedirect = getRedirectUri();
+
+  const modalHtml = `
+    <div id="spotify-client-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;">
+      <div style="background:#181818;border:1px solid rgba(255,255,255,0.15);border-radius:16px;max-width:500px;width:100%;padding:28px;color:#fff;font-family:sans-serif;box-shadow:0 20px 50px rgba(0,0,0,0.8);">
+        <h3 style="margin-top:0;margin-bottom:12px;font-size:1.3rem;color:#1db954;display:flex;align-items:center;gap:8px;">
+          🔑 Configura tu Spotify Client ID
+        </h3>
+        <p style="font-size:0.9rem;color:#b3b3b3;margin-bottom:16px;line-height:1.4;">
+          Para autorizar con tu cuenta de Spotify necesitas ingresar tu <strong>Client ID</strong>.
+        </p>
+
+        <div style="background:#0f0f0f;padding:12px;border-radius:8px;font-size:0.8rem;color:#e0e0e0;margin-bottom:16px;border:1px dashed #333;">
+          <strong style="color:#1db954;">Configuración requerida en Spotify Developer:</strong><br>
+          En tu App de Spotify, agrega esta <strong>Redirect URI</strong> exactamente:<br>
+          <code style="color:#1ed760;word-break:break-all;display:block;margin-top:4px;background:#181818;padding:4px 6px;border-radius:4px;">${currentRedirect}</code>
+        </div>
+
+        <label style="display:block;font-size:0.85rem;font-weight:bold;margin-bottom:6px;color:#fff;">Ingresa tu Spotify Client ID:</label>
+        <input type="text" id="modal-client-id-input" placeholder="Ej: a1b2c3d4e5f67890..." style="width:100%;padding:12px;border-radius:8px;border:1px solid #333;background:#0d0d0d;color:#fff;font-family:monospace;margin-bottom:20px;box-sizing:border-box;outline:none;" />
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;">
+          <button id="modal-cancel-btn" style="background:transparent;border:1px solid #444;color:#ccc;padding:10px 18px;border-radius:30px;cursor:pointer;font-weight:600;">Cancelar</button>
+          <button id="modal-save-btn" style="background:#1db954;border:none;color:#000;padding:10px 24px;border-radius:30px;cursor:pointer;font-weight:bold;">Guardar y Conectar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const input = document.getElementById('modal-client-id-input');
+  const cancelBtn = document.getElementById('modal-cancel-btn');
+  const saveBtn = document.getElementById('modal-save-btn');
+
+  if (input) input.focus();
+
+  cancelBtn.addEventListener('click', () => {
+    document.getElementById('spotify-client-modal').remove();
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const val = input.value.trim();
+    if (!val) {
+      alert('Por favor ingresa un Client ID válido.');
+      return;
+    }
+    localStorage.setItem('spotify_client_id', val);
+    const mainInput = document.getElementById('client-id-input');
+    if (mainInput) mainInput.value = val;
+    document.getElementById('spotify-client-modal').remove();
+    if (onSaveCallback) onSaveCallback(val);
+  });
+}
+
+// Iniciar sesión en Spotify (Maneja iFrames y pestañas)
 async function loginToSpotify() {
   try {
-    const inputEl = document.getElementById('client-id-input');
-    let clientId = inputEl ? inputEl.value.trim() : '';
+    const mainInput = document.getElementById('client-id-input');
+    let clientId = mainInput ? mainInput.value.trim() : '';
+
     if (!clientId) {
       clientId = localStorage.getItem('spotify_client_id') || DEFAULT_CLIENT_ID;
     }
 
     if (!clientId || clientId === 'TU_SPOTIFY_CLIENT_ID') {
-      alert('⚠️ Por favor ingresa tu Client ID de Spotify.\n\n1. Ve a https://developer.spotify.com/dashboard\n2. Crea una app y copia tu Client ID.\n3. Pégalo en la variable CLIENT_ID o en la casilla de texto.');
-      if (inputEl) inputEl.focus();
+      showClientIdPromptModal((newClientId) => {
+        executeSpotifyRedirect(newClientId);
+      });
       return;
     }
 
-    localStorage.setItem('spotify_client_id', clientId);
-
-    const verifier = generateRandomString(128);
-    const challenge = await generateCodeChallenge(verifier);
-    localStorage.setItem('spotify_code_verifier', verifier);
-
-    const redirectUri = getRedirectUri();
-
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      scope: SCOPE,
-      redirect_uri: redirectUri,
-      code_challenge_method: 'S256',
-      code_challenge: challenge
-    });
-
-    const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-    console.log("Redirigiendo a Spotify:", authUrl);
-    window.location.href = authUrl;
+    executeSpotifyRedirect(clientId);
   } catch (err) {
+    console.error("Error en loginToSpotify:", err);
     alert("❌ Error al conectar: " + err.message);
+  }
+}
+
+async function executeSpotifyRedirect(clientId) {
+  localStorage.setItem('spotify_client_id', clientId);
+
+  const verifier = generateRandomString(128);
+  const challenge = await generateCodeChallenge(verifier);
+  localStorage.setItem('spotify_code_verifier', verifier);
+
+  const redirectUri = getRedirectUri();
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: clientId,
+    scope: SCOPE,
+    redirect_uri: redirectUri,
+    code_challenge_method: 'S256',
+    code_challenge: challenge
+  });
+
+  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  console.log("Redirigiendo a Spotify Login:", authUrl);
+
+  // Si estamos dentro de un iframe (Ej: Diseñador de Webflow), abrimos en una nueva pestaña o navegamos en top
+  if (window.self !== window.top) {
+    window.open(authUrl, '_blank');
+  } else {
+    window.location.href = authUrl;
   }
 }
 
@@ -261,7 +334,6 @@ function getDemoData() {
   };
 }
 
-// Extracción segura de URL de imagen
 function getSafeImgUrl(imagesArray, fallbackText = 'Música') {
   if (Array.isArray(imagesArray) && imagesArray.length > 0 && imagesArray[0] && imagesArray[0].url) {
     return imagesArray[0].url;
@@ -269,7 +341,6 @@ function getSafeImgUrl(imagesArray, fallbackText = 'Música') {
   return `https://via.placeholder.com/300/181818/1db954?text=${encodeURIComponent(fallbackText)}`;
 }
 
-// Auto-creación de estructura DOM si faltan elementos en Webflow
 function ensureDOMStructure() {
   let statsContainer = document.getElementById('stats-container');
   if (!statsContainer) {
@@ -305,22 +376,8 @@ function ensureDOMStructure() {
   }
 }
 
-// Renderizar tarjetas en el DOM
 function renderStats(data) {
   ensureDOMStructure();
-
-  const userContainer = document.getElementById('user-profile-badge');
-  if (userContainer && data.user) {
-    const avatarUrl = getSafeImgUrl(data.user.images, 'Usuario');
-    userContainer.innerHTML = `
-      <div class="user-profile">
-        <img src="${avatarUrl}" class="user-avatar" alt="${data.user.display_name}">
-        <div>
-          <div class="user-name">${data.user.display_name}</div>
-        </div>
-      </div>
-    `;
-  }
 
   const artistsEl = document.getElementById('top-artists');
   if (artistsEl && data.artists) {
@@ -379,7 +436,7 @@ function renderStats(data) {
   }
 }
 
-// Delegación global de clics para Webflow
+// Delegación global de clics
 document.addEventListener('click', function (e) {
   const loginBtn = e.target.closest('#login-btn');
   if (loginBtn) {
@@ -391,13 +448,11 @@ document.addEventListener('click', function (e) {
   const demoBtn = e.target.closest('#demo-btn');
   if (demoBtn) {
     e.preventDefault();
-    console.log("Activando vista previa demo...");
     renderStats(getDemoData());
     return;
   }
 });
 
-// Inicialización auto-ejecutable
 async function initApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
@@ -419,11 +474,9 @@ async function initApp() {
       const statsData = await fetchSpotifyStats(token);
       if (statsData) renderStats(statsData);
     } catch (err) {
-      console.error(err);
       renderStats(getDemoData());
     }
   } else {
-    // Renderizar Vista Previa Demo por defecto inmediatamente
     renderStats(getDemoData());
   }
 }
