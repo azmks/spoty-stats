@@ -273,7 +273,7 @@ async function fetchSpotifyStats(token, timeRange = 'medium_term') {
   }
   const artistsData = await artistsRes.json();
 
-  const tracksRes = await fetch(`https://api.spotify.com/v1/me/top/tracks?limit=20&time_range=${timeRange}`, { headers });
+  const tracksRes = await fetch(`https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=${timeRange}`, { headers });
   if (!tracksRes.ok) {
     const errObj = await tracksRes.json().catch(() => ({}));
     throw new Error(errObj.error?.message || "Error al obtener canciones");
