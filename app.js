@@ -310,6 +310,26 @@ async function fetchSpotifyStats(token, timeRange = 'medium_term') {
 }
 
 
+// Datos Demo para el botón de ejemplo
+function getDemoData() {
+  return {
+    user: { display_name: 'Usuario Demo (Ejemplo)' },
+    artists: [
+      { id: '1', name: 'The Weeknd', genres: ['pop', 'r&b'], images: [{ url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: '#' } },
+      { id: '2', name: 'Bad Bunny', genres: ['reggaeton', 'latin pop'], images: [{ url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: '#' } },
+      { id: '3', name: 'Taylor Swift', genres: ['pop'], images: [{ url: 'https://images.unsplash.com/photo-1599839619722-39751411ea63?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: '#' } }
+    ],
+    tracks: [
+      { id: 't1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: '#' } },
+      { id: 't2', name: 'Dakiti', artists: [{ name: 'Bad Bunny' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: '#' } }
+    ],
+    albums: [
+      { id: 'a1', name: 'After Hours', artist: 'The Weeknd', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80', url: '#' },
+      { id: 'a2', name: 'El Último Tour Del Mundo', artist: 'Bad Bunny', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80', url: '#' }
+    ]
+  };
+}
+
 function getSafeImgUrl(imagesArray, fallbackText = 'Música') {
   if (Array.isArray(imagesArray) && imagesArray.length > 0 && imagesArray[0] && imagesArray[0].url) {
     return imagesArray[0].url;
@@ -413,6 +433,13 @@ function renderStats(data) {
 
 // Listener Global de Clics
 document.addEventListener('click', function (e) {
+  const demoBtn = e.target.closest('#demo-btn');
+  if (demoBtn) {
+    e.preventDefault();
+    renderStats(OWNER_STATS || getDemoData());
+    return;
+  }
+
   // Buscar cualquier botón o enlace que contenga texto o ID/clase de login
   const loginBtn = e.target.closest('#login-btn, .login-btn, [data-spotify-login]');
   const isGenericSpotifyBtn = e.target.closest('.spotify-btn');
