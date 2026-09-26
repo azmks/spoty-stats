@@ -1,39 +1,67 @@
 /**
- * Spotify Webflow Integration JavaScript (Solución Definitiva & Super Confiable)
+ * Spotify Webflow Integration JavaScript (Versión 100% Infallible y Confiable)
  */
 
 const DEFAULT_CLIENT_ID = 'TU_SPOTIFY_CLIENT_ID';
 const SCOPE = 'user-top-read user-read-private';
 
-// Helper SHA-256 de respaldo (funciona sin HTTPS y en file://)
-function sha256Pure(ascii) {
-  function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
-  var mathPow = Math.pow, maxWord = mathPow(2, 32), lengthProperty = 'length', i, j;
-  var words = [], asciiLength = ascii[lengthProperty] * 8;
-  var hash = sha256Pure.h = sha256Pure.h || [];
-  var k = sha256Pure.k = sha256Pure.k || [];
-  var primeCounter = k[lengthProperty];
-  var isComposite = {};
-  for (var candidate = 2; primeCounter < 64; candidate++) {
-    if (!isComposite[candidate]) {
-      for (i = 0; i < 300; i += candidate) isComposite[i] = candidate;
-      hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
-      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-    }
+// Storage Seguro
+const safeStorage = {
+  memory: {},
+  getItem(key) {
+    try { return localStorage.getItem(key); } catch (e) { return this.memory[key] || null; }
+  },
+  setItem(key, val) {
+    try { localStorage.setItem(key, val); } catch (e) { this.memory[key] = val; }
+  },
+  removeItem(key) {
+    try { localStorage.removeItem(key); } catch (e) { delete this.memory[key]; }
   }
+};
+
+// Algoritmo SHA-256 limpio sin mutación de estado persistente
+function sha256Pure(ascii) {
+  function rightRotate(value, amount) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+
+  var mathPow = Math.pow;
+  var maxWord = mathPow(2, 32);
+  var lengthProperty = 'length';
+  var i, j;
+
+  var words = [];
+  var asciiLength = ascii[lengthProperty] * 8;
+  
+  var hash = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ];
+  
+  var k = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+
   ascii += '\x80';
   while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
   for (i = 0; i < ascii[lengthProperty]; i++) {
     j = ascii.charCodeAt(i);
-    if (j >> 8) return;
     words[i >> 2] |= j << ((3 - i % 4) * 8);
   }
   words[words[lengthProperty]] = ((asciiLength / maxWord) | 0);
   words[words[lengthProperty]] = (asciiLength);
+  
   for (j = 0; j < words[lengthProperty];) {
     var w = words.slice(j, j += 16);
-    var oldHash = hash;
-    hash = hash.slice(0, 8);
+    var oldHash = hash.slice(0);
+
     for (i = 0; i < 64; i++) {
       var w15 = w[i - 15], w2 = w[i - 2];
       var a = hash[0], e = hash[4];
@@ -49,11 +77,15 @@ function sha256Pure(ascii) {
         ) | 0);
       var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
         + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
       hash = [(temp1 + temp2) | 0].concat(hash);
       hash[4] = (hash[4] + temp1) | 0;
     }
-    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+    for (i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
   }
+
   var binaryArray = [];
   for (i = 0; i < 8; i++) {
     binaryArray.push((hash[i] >> 24) & 255);
@@ -106,96 +138,48 @@ function getRedirectUri() {
   return window.location.origin + window.location.pathname;
 }
 
-// Modal en pantalla si no se ha ingresado Client ID (sin depender de alert())
-function showClientIdPromptModal(onSaveCallback) {
-  let existingModal = document.getElementById('spotify-client-modal');
-  if (existingModal) existingModal.remove();
-
-  const currentRedirect = getRedirectUri();
-
-  const modalHtml = `
-    <div id="spotify-client-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;">
-      <div style="background:#181818;border:1px solid rgba(255,255,255,0.15);border-radius:16px;max-width:500px;width:100%;padding:28px;color:#fff;font-family:sans-serif;box-shadow:0 20px 50px rgba(0,0,0,0.8);">
-        <h3 style="margin-top:0;margin-bottom:12px;font-size:1.3rem;color:#1db954;display:flex;align-items:center;gap:8px;">
-          🔑 Configura tu Spotify Client ID
-        </h3>
-        <p style="font-size:0.9rem;color:#b3b3b3;margin-bottom:16px;line-height:1.4;">
-          Para autorizar con tu cuenta de Spotify necesitas ingresar tu <strong>Client ID</strong>.
-        </p>
-
-        <div style="background:#0f0f0f;padding:12px;border-radius:8px;font-size:0.8rem;color:#e0e0e0;margin-bottom:16px;border:1px dashed #333;">
-          <strong style="color:#1db954;">Configuración requerida en Spotify Developer:</strong><br>
-          En tu App de Spotify, agrega esta <strong>Redirect URI</strong> exactamente:<br>
-          <code style="color:#1ed760;word-break:break-all;display:block;margin-top:4px;background:#181818;padding:4px 6px;border-radius:4px;">${currentRedirect}</code>
-        </div>
-
-        <label style="display:block;font-size:0.85rem;font-weight:bold;margin-bottom:6px;color:#fff;">Ingresa tu Spotify Client ID:</label>
-        <input type="text" id="modal-client-id-input" placeholder="Ej: a1b2c3d4e5f67890..." style="width:100%;padding:12px;border-radius:8px;border:1px solid #333;background:#0d0d0d;color:#fff;font-family:monospace;margin-bottom:20px;box-sizing:border-box;outline:none;" />
-
-        <div style="display:flex;justify-content:flex-end;gap:12px;">
-          <button id="modal-cancel-btn" style="background:transparent;border:1px solid #444;color:#ccc;padding:10px 18px;border-radius:30px;cursor:pointer;font-weight:600;">Cancelar</button>
-          <button id="modal-save-btn" style="background:#1db954;border:none;color:#000;padding:10px 24px;border-radius:30px;cursor:pointer;font-weight:bold;">Guardar y Conectar</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-  const input = document.getElementById('modal-client-id-input');
-  const cancelBtn = document.getElementById('modal-cancel-btn');
-  const saveBtn = document.getElementById('modal-save-btn');
-
-  if (input) input.focus();
-
-  cancelBtn.addEventListener('click', () => {
-    document.getElementById('spotify-client-modal').remove();
-  });
-
-  saveBtn.addEventListener('click', () => {
-    const val = input.value.trim();
-    if (!val) {
-      alert('Por favor ingresa un Client ID válido.');
-      return;
-    }
-    localStorage.setItem('spotify_client_id', val);
-    const mainInput = document.getElementById('client-id-input');
-    if (mainInput) mainInput.value = val;
-    document.getElementById('spotify-client-modal').remove();
-    if (onSaveCallback) onSaveCallback(val);
-  });
-}
-
-// Iniciar sesión en Spotify (Maneja iFrames y pestañas)
+// Función Principal de Inicio de Sesión
 async function loginToSpotify() {
+  console.log("🟢 [Spotify] Iniciando loginToSpotify...");
   try {
     const mainInput = document.getElementById('client-id-input');
     let clientId = mainInput ? mainInput.value.trim() : '';
 
     if (!clientId) {
-      clientId = localStorage.getItem('spotify_client_id') || DEFAULT_CLIENT_ID;
+      clientId = safeStorage.getItem('spotify_client_id') || DEFAULT_CLIENT_ID;
     }
 
+    // Si el Client ID no está configurado o es el valor placeholder
     if (!clientId || clientId === 'TU_SPOTIFY_CLIENT_ID') {
-      showClientIdPromptModal((newClientId) => {
-        executeSpotifyRedirect(newClientId);
-      });
-      return;
+      const userEntered = prompt(
+        "🔑 Configuración de Spotify:\n\nIngresa tu Spotify Client ID (obtenido en https://developer.spotify.com/dashboard):\n\nRedirect URI requerida: " + getRedirectUri()
+      );
+      if (userEntered && userEntered.trim()) {
+        clientId = userEntered.trim();
+        safeStorage.setItem('spotify_client_id', clientId);
+        if (mainInput) mainInput.value = clientId;
+      } else {
+        console.warn("⚠️ No se ingresó Client ID.");
+        return;
+      }
     }
 
-    executeSpotifyRedirect(clientId);
+    await executeSpotifyRedirect(clientId);
   } catch (err) {
-    console.error("Error en loginToSpotify:", err);
-    alert("❌ Error al conectar: " + err.message);
+    console.error("❌ Error en loginToSpotify:", err);
+    alert("❌ Error al redirigir a Spotify: " + err.message);
   }
 }
 
+// Exponer globalmente
+window.loginToSpotify = loginToSpotify;
+
 async function executeSpotifyRedirect(clientId) {
-  localStorage.setItem('spotify_client_id', clientId);
+  safeStorage.setItem('spotify_client_id', clientId);
 
   const verifier = generateRandomString(128);
   const challenge = await generateCodeChallenge(verifier);
-  localStorage.setItem('spotify_code_verifier', verifier);
+  safeStorage.setItem('spotify_code_verifier', verifier);
 
   const redirectUri = getRedirectUri();
 
@@ -209,9 +193,9 @@ async function executeSpotifyRedirect(clientId) {
   });
 
   const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-  console.log("Redirigiendo a Spotify Login:", authUrl);
+  console.log("🚀 Redirigiendo a:", authUrl);
 
-  // Si estamos dentro de un iframe (Ej: Diseñador de Webflow), abrimos en una nueva pestaña o navegamos en top
+  // Redirección inmediata garantizada
   if (window.self !== window.top) {
     window.open(authUrl, '_blank');
   } else {
@@ -220,8 +204,8 @@ async function executeSpotifyRedirect(clientId) {
 }
 
 async function getAccessToken(code) {
-  const verifier = localStorage.getItem('spotify_code_verifier');
-  const clientId = localStorage.getItem('spotify_client_id') || DEFAULT_CLIENT_ID;
+  const verifier = safeStorage.getItem('spotify_code_verifier');
+  const clientId = safeStorage.getItem('spotify_client_id') || DEFAULT_CLIENT_ID;
   const redirectUri = getRedirectUri();
 
   const params = new URLSearchParams({
@@ -242,26 +226,26 @@ async function getAccessToken(code) {
     const data = await response.json();
     if (data.access_token) {
       const expiresAt = Date.now() + (data.expires_in * 1000);
-      localStorage.setItem('spotify_access_token', data.access_token);
-      localStorage.setItem('spotify_token_expires_at', expiresAt.toString());
+      safeStorage.setItem('spotify_access_token', data.access_token);
+      safeStorage.setItem('spotify_token_expires_at', expiresAt.toString());
       window.history.replaceState({}, document.title, window.location.pathname);
       return data.access_token;
     } else {
       alert('❌ Error de Spotify: ' + (data.error_description || data.error));
     }
   } catch (err) {
-    alert('❌ Error de red al conectar con Spotify.');
+    alert('❌ Error de red al obtener token de Spotify.');
   }
   return null;
 }
 
 function getValidToken() {
-  const token = localStorage.getItem('spotify_access_token');
-  const expiresAt = localStorage.getItem('spotify_token_expires_at');
+  const token = safeStorage.getItem('spotify_access_token');
+  const expiresAt = safeStorage.getItem('spotify_token_expires_at');
   if (!token || !expiresAt) return null;
   if (Date.now() >= parseInt(expiresAt, 10)) {
-    localStorage.removeItem('spotify_access_token');
-    localStorage.removeItem('spotify_token_expires_at');
+    safeStorage.removeItem('spotify_access_token');
+    safeStorage.removeItem('spotify_token_expires_at');
     return null;
   }
   return token;
@@ -278,7 +262,7 @@ async function fetchSpotifyStats(token, timeRange = 'short_term') {
 
   const artistsRes = await fetch(`https://api.spotify.com/v1/me/top/artists?limit=10&time_range=${timeRange}`, { headers });
   if (artistsRes.status === 401) {
-    localStorage.removeItem('spotify_access_token');
+    safeStorage.removeItem('spotify_access_token');
     window.location.reload();
     return;
   }
@@ -317,19 +301,13 @@ function getDemoData() {
     user: { display_name: 'Usuario Demo (Vista Previa)', images: [{ url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' }] },
     artists: [
       { id: '1', name: 'The Weeknd', genres: ['pop', 'r&b'], images: [{ url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: '2', name: 'Bad Bunny', genres: ['reggaeton', 'latin pop'], images: [{ url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: '3', name: 'Dua Lipa', genres: ['dance pop', 'uk pop'], images: [{ url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: '4', name: 'Rosalía', genres: ['flamenco urbano'], images: [{ url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: '5', name: 'Arctic Monkeys', genres: ['indie rock'], images: [{ url: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } }
+      { id: '2', name: 'Bad Bunny', genres: ['reggaeton', 'latin pop'], images: [{ url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80' }], external_urls: { spotify: 'https://open.spotify.com' } }
     ],
     tracks: [
-      { id: 't1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: 't2', name: 'As It Was', artists: [{ name: 'Harry Styles' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: 'https://open.spotify.com' } },
-      { id: 't3', name: 'Despechá', artists: [{ name: 'Rosalía' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: 'https://open.spotify.com' } }
+      { id: 't1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { images: [{ url: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80' }] }, external_urls: { spotify: 'https://open.spotify.com' } }
     ],
     albums: [
-      { id: 'a1', name: 'After Hours', artist: 'The Weeknd', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80', url: 'https://open.spotify.com' },
-      { id: 'a2', name: 'Un Verano Sin Ti', artist: 'Bad Bunny', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80', url: 'https://open.spotify.com' }
+      { id: 'a1', name: 'After Hours', artist: 'The Weeknd', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80', url: 'https://open.spotify.com' }
     ]
   };
 }
@@ -388,9 +366,7 @@ function renderStats(data) {
       return `
         <a href="${link}" target="_blank" class="stat-card artist">
           <span class="stat-number">#${idx + 1}</span>
-          <div class="stat-card-img-wrapper">
-            <img src="${imgUrl}" alt="${artist.name}">
-          </div>
+          <div class="stat-card-img-wrapper"><img src="${imgUrl}" alt="${artist.name}"></div>
           <div class="stat-title">${artist.name}</div>
           <div class="stat-subtitle">${genres}</div>
         </a>
@@ -407,9 +383,7 @@ function renderStats(data) {
       return `
         <a href="${link}" target="_blank" class="stat-card">
           <span class="stat-number">#${idx + 1}</span>
-          <div class="stat-card-img-wrapper">
-            <img src="${imgUrl}" alt="${track.name}">
-          </div>
+          <div class="stat-card-img-wrapper"><img src="${imgUrl}" alt="${track.name}"></div>
           <div class="stat-title">${track.name}</div>
           <div class="stat-subtitle">${artistNames}</div>
         </a>
@@ -425,9 +399,7 @@ function renderStats(data) {
       return `
         <a href="${link}" target="_blank" class="stat-card">
           <span class="stat-number">#${idx + 1}</span>
-          <div class="stat-card-img-wrapper">
-            <img src="${imgUrl}" alt="${album.name}">
-          </div>
+          <div class="stat-card-img-wrapper"><img src="${imgUrl}" alt="${album.name}"></div>
           <div class="stat-title">${album.name}</div>
           <div class="stat-subtitle">${album.artist}</div>
         </a>
@@ -436,16 +408,19 @@ function renderStats(data) {
   }
 }
 
-// Delegación global de clics
+// Listener Global de Clics
 document.addEventListener('click', function (e) {
-  const loginBtn = e.target.closest('#login-btn');
-  if (loginBtn) {
+  // Buscar cualquier botón o enlace que contenga texto o ID/clase de login
+  const loginBtn = e.target.closest('#login-btn, .login-btn, [data-spotify-login]');
+  const isGenericSpotifyBtn = e.target.closest('.spotify-btn') && !e.target.closest('#demo-btn') && !e.target.closest('#open-code-modal');
+
+  if (loginBtn || isGenericSpotifyBtn) {
     e.preventDefault();
     loginToSpotify();
     return;
   }
 
-  const demoBtn = e.target.closest('#demo-btn');
+  const demoBtn = e.target.closest('#demo-btn, .demo-btn');
   if (demoBtn) {
     e.preventDefault();
     renderStats(getDemoData());
@@ -457,7 +432,7 @@ async function initApp() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
 
-  const storedId = localStorage.getItem('spotify_client_id');
+  const storedId = safeStorage.getItem('spotify_client_id');
   const inputEl = document.getElementById('client-id-input');
   if (inputEl && storedId) {
     inputEl.value = storedId;
